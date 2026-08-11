@@ -1,0 +1,179 @@
+name: Publish AMD64 relay artifact
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - src/**
+      - config/**
+      - docs/**
+      - packaging/**
+      - .github/workflows/publish-amd64.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: qemu-ipmi-relay-amd64-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OCI_REPOSITORY: ghcr.io/${{ github.repository }}
+  ORAS_VERSION: 1.3.3
+  RUST_VERSION: "1.85"
+
+jobs:
+  publish:
+    name: Linux AMD64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust ${{ env.RUST_VERSION }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy,rustfmt
+
+      - name: Verify source
+        shell: bash
+        run: |
+          __main() {
+            set -euo pipefail
+
+            cargo fmt --all -- --check
+            cargo clippy --locked --all-targets --all-features -- -D warnings
+            cargo test --locked --all-targets --all-features
+          }
+
+          __main "$@"
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          __main() {
+            set -euo pipefail
+
+            cargo build --locked --release
+            test "$(uname -m)" = x86_64
+            file target/release/qemu-ipmi-relay | grep -q 'ELF 64-bit.*x86-64'
+          }
+
+          __main "$@"
+
+      - name: Package release
+        shell: bash
+        run: |
+          __main() {
+            set -euo pipefail
+
+            local _output_dir="${RUNNER_TEMP}/release"
+            local _stage_dir="${RUNNER_TEMP}/stage"
+            local _archive_name=qemu-ipmi-relay-linux-amd64.tar.gz
+            local _source_date_epoch
+
+            _source_date_epoch=$(git show -s --format=%ct HEAD)
+            mkdir -p \
+              "${_output_dir}" \
+              "${_stage_dir}/bin" \
+              "${_stage_dir}/config" \
+              "${_stage_dir}/docs" \
+              "${_stage_dir}/systemd"
+            install -m 0755 target/release/qemu-ipmi-relay \
+              "${_stage_dir}/bin/qemu-ipmi-relay"
+            install -m 0644 packaging/systemd/qemu-ipmi-relay@.service \
+              "${_stage_dir}/systemd/qemu-ipmi-relay@.service"
+            install -m 0644 config/example.toml \
+              "${_stage_dir}/config/example.toml"
+            install -m 0644 docs/deployment.md \
+              "${_stage_dir}/docs/deployment.md"
+            install -m 0644 README.md LICENSE "${_stage_dir}/"
+            tar \
+              --sort=name \
+              --mtime="@${_source_date_epoch}" \
+              --owner=0 \
+              --group=0 \
+              --numeric-owner \
+              -czf "${_output_dir}/${_archive_name}" \
+              -C "${_stage_dir}" .
+            (
+              cd "${_output_dir}"
+              sha256sum "${_archive_name}" > SHA256SUMS
+            )
+            echo "OUTPUT_DIR=${_output_dir}" >> "${GITHUB_ENV}"
+            echo "ARCHIVE_NAME=${_archive_name}" >> "${GITHUB_ENV}"
+          }
+
+          __main "$@"
+
+      - name: Setup ORAS ${{ env.ORAS_VERSION }}
+        uses: oras-project/setup-oras@v2.0.1
+        with:
+          version: ${{ env.ORAS_VERSION }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish artifact to GHCR
+        shell: bash
+        env:
+          ORAS_ARTIFACT_TYPE: application/vnd.qemu-ipmi-relay.release.v1
+          ORAS_ARCHIVE_TYPE: application/vnd.qemu-ipmi-relay.release.layer.v1+tar+gzip
+          ORAS_CHECKSUM_TYPE: text/plain
+        run: |
+          __main() {
+            set -euo pipefail
+
+            local _short_sha=${GITHUB_SHA:0:12}
+            local _revision_tag=artifact-amd64-sha-${_short_sha}
+            local _latest_tag=artifact-amd64-latest
+            local _revision_ref=${OCI_REPOSITORY}:${_revision_tag}
+            local _revision_descriptor
+            local _revision_digest
+            local _latest_descriptor
+            local _latest_digest
+
+            (
+              cd "${OUTPUT_DIR}"
+              oras push \
+                --artifact-type "${ORAS_ARTIFACT_TYPE}" \
+                --annotation "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+                --annotation "org.opencontainers.image.revision=${GITHUB_SHA}" \
+                --annotation "org.opencontainers.image.version=${GITHUB_SHA}" \
+                "${_revision_ref}" \
+                "${ARCHIVE_NAME}:${ORAS_ARCHIVE_TYPE}" \
+                "SHA256SUMS:${ORAS_CHECKSUM_TYPE}"
+            )
+            oras tag "${_revision_ref}" "${_latest_tag}"
+
+            _revision_descriptor=$(oras manifest fetch --descriptor "${_revision_ref}")
+            _revision_digest=$(jq -er '.digest' <<< "${_revision_descriptor}")
+            _latest_descriptor=$(oras manifest fetch --descriptor \
+              "${OCI_REPOSITORY}:${_latest_tag}")
+            _latest_digest=$(jq -er '.digest' <<< "${_latest_descriptor}")
+            test "${_revision_digest}" = "${_latest_digest}"
+
+            {
+              echo "## Published Linux AMD64 artifact"
+              echo
+              echo "- Latest: \`${OCI_REPOSITORY}:${_latest_tag}\`"
+              echo "- Revision: \`${_revision_ref}\`"
+              echo "- Digest: \`${_revision_digest}\`"
+            } >> "${GITHUB_STEP_SUMMARY}"
+          }
+
+          __main "$@"

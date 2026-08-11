@@ -1,0 +1,20 @@
+[package]
+name = "qemu-ipmi-relay"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Transparent QEMU VM-IPMI to Linux OpenIPMI relay"
+license = "Apache-2.0"
+repository = "https://github.com/lwmacct/260811-qemu-ipmi-relay"
+
+[dependencies]
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+[[bin]]
+name = "qemu-ipmi-relay"
+path = "src/main.rs"

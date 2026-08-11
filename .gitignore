@@ -12,6 +12,7 @@
 **/*.tsbuildinfo
 
 # 构建输出
+target/
 bin-*
 bin/
 dist/
