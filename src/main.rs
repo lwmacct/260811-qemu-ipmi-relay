@@ -14,6 +14,7 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
     thread,
+    time::{Duration, Instant},
 };
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
@@ -50,7 +51,12 @@ fn run() -> Result<()> {
     };
     config.validate()?;
     let listener = systemd_listener()?;
-    let backend = OpenIpmi::open(&config.device)?;
+    let backend = wait_for_backend(
+        config.device_wait_timeout(),
+        config.device_retry_interval(),
+        || OpenIpmi::open(&config.device),
+    )?;
+    info!(device = %config.device.display(), "OpenIPMI device ready");
     let (dispatcher, bmc_worker) =
         start_bmc_worker(backend, config.request_timeout(), config.queue_depth)?;
     thread::Builder::new()
@@ -107,6 +113,31 @@ fn acquire_connection(active: Arc<AtomicUsize>, limit: usize) -> Option<Connecti
         })
         .ok()
         .map(|_| ConnectionPermit { active })
+}
+
+fn wait_for_backend<T>(
+    timeout: Duration,
+    retry_interval: Duration,
+    mut open: impl FnMut() -> Result<T>,
+) -> Result<T> {
+    let deadline = Instant::now() + timeout;
+    let mut next_log = Instant::now();
+    loop {
+        match open() {
+            Ok(backend) => return Ok(backend),
+            Err(error) => {
+                let now = Instant::now();
+                if now >= deadline {
+                    return Err(RelayError::DeviceWaitTimeout(error.to_string()));
+                }
+                if now >= next_log {
+                    warn!(%error, "OpenIPMI device is not ready; retrying");
+                    next_log = now + Duration::from_secs(10);
+                }
+                thread::sleep(retry_interval.min(deadline.saturating_duration_since(now)));
+            }
+        }
+    }
 }
 
 fn parse_args(args: impl Iterator<Item = String>) -> Result<Option<PathBuf>> {
@@ -180,5 +211,33 @@ mod tests {
         assert!(acquire_connection(Arc::clone(&active), 1).is_none());
         drop(first);
         assert!(acquire_connection(active, 1).is_some());
+    }
+
+    #[test]
+    fn retries_backend_until_it_is_ready() {
+        let mut attempts = 0;
+        let backend = wait_for_backend(Duration::from_secs(1), Duration::from_millis(1), || {
+            attempts += 1;
+            if attempts < 3 {
+                return Err(RelayError::Io(std::io::Error::from(
+                    std::io::ErrorKind::NotFound,
+                )));
+            }
+            Ok(42)
+        })
+        .unwrap();
+        assert_eq!(backend, 42);
+        assert_eq!(attempts, 3);
+    }
+
+    #[test]
+    fn reports_backend_wait_timeout() {
+        let error = wait_for_backend(Duration::ZERO, Duration::from_millis(1), || {
+            Err::<(), _>(RelayError::Io(std::io::Error::from(
+                std::io::ErrorKind::NotFound,
+            )))
+        })
+        .unwrap_err();
+        assert!(matches!(error, RelayError::DeviceWaitTimeout(_)));
     }
 }

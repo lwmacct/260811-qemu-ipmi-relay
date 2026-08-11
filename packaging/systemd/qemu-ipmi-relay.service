@@ -2,7 +2,6 @@
 Description=Shared QEMU IPMI relay
 Requires=qemu-ipmi-relay.socket
 After=systemd-modules-load.service qemu-ipmi-relay.socket
-ConditionPathExists=/dev/ipmi0
 
 [Service]
 Type=simple

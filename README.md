@@ -28,6 +28,8 @@ nor changed. There is no allowlist or denylist.
 
 ```toml
 device = "/dev/ipmi0"
+device_wait_timeout_ms = 120000
+device_retry_interval_ms = 500
 request_timeout_ms = 3000
 max_frame_size = 303
 max_connections = 128

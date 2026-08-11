@@ -36,7 +36,10 @@ The service runs as root because the host may expose `/dev/ipmi0` as mode
 `0600`. The socket unit creates `/run/qemu-ipmi-relay/ipmi.sock` as
 `root:incus` mode `0660`, allowing Incus QEMU processes to connect. Adjust
 `SocketGroup` if QEMU runs under a different account. The service starts on
-the first connection.
+the first connection. The socket is ordered before `incus.service`, and the
+relay retries the configured OpenIPMI device until `device_wait_timeout_ms`
+expires. If the timeout expires, systemd restarts the service and begins
+another wait cycle while the listening socket remains available.
 
 Keep the socket outside `/run/incus/<instance>/`. Incus recreates that
 instance runtime directory during VM startup and may remove a relay socket
@@ -60,6 +63,7 @@ every VM while it is stopped:
 ```sh
 incus stop example-vm
 incus config set example-vm "raw.qemu.conf=$(<config/raw.qemu.conf)"
+incus config set example-vm boot.autostart=true
 incus start example-vm
 ```
 

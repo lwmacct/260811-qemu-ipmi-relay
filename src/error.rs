@@ -14,6 +14,8 @@ pub enum RelayError {
     OpenIpmi(String),
     #[error("BMC worker is unavailable")]
     BmcWorkerUnavailable,
+    #[error("timed out waiting for OpenIPMI device: {0}")]
+    DeviceWaitTimeout(String),
 }
 
 pub type Result<T> = std::result::Result<T, RelayError>;

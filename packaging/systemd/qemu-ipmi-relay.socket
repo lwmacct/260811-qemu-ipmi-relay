@@ -1,5 +1,6 @@
 [Unit]
 Description=Shared QEMU IPMI relay socket
+Before=incus.service
 
 [Socket]
 ListenStream=/run/qemu-ipmi-relay/ipmi.sock
