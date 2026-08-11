@@ -95,6 +95,8 @@ jobs:
               "${_stage_dir}/systemd/qemu-ipmi-relay@.service"
             install -m 0644 config/example.toml \
               "${_stage_dir}/config/example.toml"
+            install -m 0644 config/raw.qemu.conf \
+              "${_stage_dir}/config/raw.qemu.conf"
             install -m 0644 docs/deployment.md \
               "${_stage_dir}/docs/deployment.md"
             install -m 0644 README.md LICENSE "${_stage_dir}/"

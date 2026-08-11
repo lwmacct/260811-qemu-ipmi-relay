@@ -49,8 +49,8 @@ The equivalent QEMU command-line fragment is:
 -device isa-ipmi-kcs,bmc=host-bmc
 ```
 
-For Incus, add the equivalent QEMU configuration to the VM's
-`raw.qemu.conf` setting while the VM is stopped:
+For Incus, [`config/raw.qemu.conf`](../config/raw.qemu.conf) contains the
+following value for the VM's `raw.qemu.conf` setting:
 
 ```ini
 [chardev "ipmi-relay"]
@@ -67,11 +67,11 @@ driver = "isa-ipmi-kcs"
 bmc = "host-bmc"
 ```
 
-Apply it with a file to avoid shell quoting errors:
+Apply that file while the VM is stopped:
 
 ```sh
 incus stop example-vm
-incus config set example-vm raw.qemu.conf "$(<qemu-ipmi.conf)"
+incus config set example-vm "raw.qemu.conf=$(<config/raw.qemu.conf)"
 incus start example-vm
 ```
 
