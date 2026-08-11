@@ -6,17 +6,18 @@ ioctl ABI; it does not inspect or filter IPMI command semantics.
 
 ## Status
 
-The protocol codec, OpenIPMI backend, single-connection relay, tests, and
-systemd packaging are implemented. End-to-end validation has been completed
-with a real QEMU KCS device and physical BMC: guest `ipmitool mc info` and
-`ipmitool lan print` both succeeded and matched the host BMC data.
+The protocol codec, OpenIPMI backend, multi-client relay, tests, and systemd
+socket-activation packaging are implemented. End-to-end validation has been
+completed with a real QEMU KCS device and physical BMC: guest
+`ipmitool mc info` and `ipmitool lan print` both succeeded and matched the
+host BMC data.
 
 ## Data path
 
 ```text
-guest ipmitool -> guest /dev/ipmi0 -> QEMU isa-ipmi-kcs
-  -> QEMU VM-IPMI framing -> Unix socket -> qemu-ipmi-relay
-  -> Linux OpenIPMI ioctl -> host /dev/ipmi0 -> physical BMC
+multiple guests -> QEMU isa-ipmi-kcs -> shared Unix socket
+  -> per-connection relay workers -> bounded request queue
+  -> single OpenIPMI worker -> host /dev/ipmi0 -> physical BMC
 ```
 
 Only transport framing is decoded: sequence, NetFn/LUN, command, payload,
@@ -26,17 +27,17 @@ nor changed. There is no allowlist or denylist.
 ## Configuration
 
 ```toml
-socket = "/run/qemu-ipmi-relay/ipmi.sock"
 device = "/dev/ipmi0"
 request_timeout_ms = 3000
 max_frame_size = 303
+max_connections = 128
+queue_depth = 128
 ```
 
-Run with defaults or an explicit configuration file:
-
-```sh
-cargo run -- --config config/example.toml
-```
+The listening socket is supplied through systemd socket activation. Every VM
+connects to `/run/qemu-ipmi-relay/ipmi.sock`; the relay accepts the connections
+concurrently and serializes physical BMC transactions through one OpenIPMI
+worker.
 
 Set `RUST_LOG=debug` to log each forwarded request's sequence, NetFn/LUN, and
 command number. Payload bytes are not logged.

@@ -6,7 +6,6 @@ use std::{
     fs::OpenOptions,
     os::fd::AsRawFd,
     path::Path,
-    sync::atomic::{AtomicI64, Ordering},
     time::{Duration, Instant},
 };
 
@@ -63,18 +62,18 @@ const IPMICTL_RECEIVE_MSG_TRUNC: libc::c_ulong = ioc(3, 11, std::mem::size_of::<
 
 pub struct OpenIpmi {
     file: std::fs::File,
-    next_msgid: AtomicI64,
+    next_msgid: i64,
 }
 
 pub trait Backend {
-    fn transact(&self, request: &IpmiMessage, timeout: Duration) -> Result<IpmiMessage>;
+    fn transact(&mut self, request: &IpmiMessage, timeout: Duration) -> Result<IpmiMessage>;
 }
 
 impl OpenIpmi {
     pub fn open(path: &Path) -> Result<Self> {
         Ok(Self {
             file: OpenOptions::new().read(true).write(true).open(path)?,
-            next_msgid: AtomicI64::new(1),
+            next_msgid: 1,
         })
     }
 
@@ -92,7 +91,7 @@ impl OpenIpmi {
 }
 
 impl Backend for OpenIpmi {
-    fn transact(&self, request: &IpmiMessage, timeout: Duration) -> Result<IpmiMessage> {
+    fn transact(&mut self, request: &IpmiMessage, timeout: Duration) -> Result<IpmiMessage> {
         if request.data.len() > u16::MAX as usize {
             return Err(RelayError::OpenIpmi("request payload is too large".into()));
         }
@@ -105,7 +104,8 @@ impl Backend for OpenIpmi {
         // QEMU's sequence is only one byte and is quickly reused. A separate
         // monotonic msgid prevents a delayed kernel response from matching a
         // later request with the same QEMU sequence.
-        let msgid = self.next_msgid.fetch_add(1, Ordering::Relaxed);
+        let msgid = self.next_msgid;
+        self.next_msgid = self.next_msgid.wrapping_add(1);
         let mut req = IpmiReq {
             addr: (&mut address as *mut SystemInterfaceAddr).cast(),
             addr_len: std::mem::size_of::<SystemInterfaceAddr>() as u32,

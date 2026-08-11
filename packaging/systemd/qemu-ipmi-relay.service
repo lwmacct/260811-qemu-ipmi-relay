@@ -1,16 +1,14 @@
 [Unit]
-Description=QEMU IPMI relay for %i
-After=systemd-modules-load.service
+Description=Shared QEMU IPMI relay
+Requires=qemu-ipmi-relay.socket
+After=systemd-modules-load.service qemu-ipmi-relay.socket
 ConditionPathExists=/dev/ipmi0
 
 [Service]
 Type=simple
 User=root
 Group=incus
-UMask=0007
-RuntimeDirectory=qemu-ipmi-relay
-RuntimeDirectoryMode=0750
-ExecStart=/usr/local/sbin/qemu-ipmi-relay --config /etc/qemu-ipmi-relay/%i.toml
+ExecStart=/usr/local/sbin/qemu-ipmi-relay --config /etc/qemu-ipmi-relay/config.toml
 Restart=on-failure
 RestartSec=1s
 
@@ -27,11 +25,7 @@ ProtectKernelLogs=yes
 ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectSystem=strict
-ReadWritePaths=/run/qemu-ipmi-relay
 RestrictAddressFamilies=AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes
 SystemCallArchitectures=native
-
-[Install]
-WantedBy=multi-user.target

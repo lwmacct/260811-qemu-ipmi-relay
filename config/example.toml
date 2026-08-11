@@ -1,4 +1,5 @@
-socket = "/run/qemu-ipmi-relay/example-vm.sock"
 device = "/dev/ipmi0"
 request_timeout_ms = 3000
 max_frame_size = 303
+max_connections = 128
+queue_depth = 128

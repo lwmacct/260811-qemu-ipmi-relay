@@ -1,0 +1,15 @@
+[Unit]
+Description=Shared QEMU IPMI relay socket
+
+[Socket]
+ListenStream=/run/qemu-ipmi-relay/ipmi.sock
+FileDescriptorName=ipmi
+SocketUser=root
+SocketGroup=incus
+SocketMode=0660
+DirectoryMode=0750
+RemoveOnStop=yes
+Service=qemu-ipmi-relay.service
+
+[Install]
+WantedBy=sockets.target

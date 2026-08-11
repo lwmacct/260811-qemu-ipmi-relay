@@ -12,6 +12,8 @@ pub enum RelayError {
     Protocol(String),
     #[error("OpenIPMI error: {0}")]
     OpenIpmi(String),
+    #[error("BMC worker is unavailable")]
+    BmcWorkerUnavailable,
 }
 
 pub type Result<T> = std::result::Result<T, RelayError>;
