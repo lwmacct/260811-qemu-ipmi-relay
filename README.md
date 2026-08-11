@@ -7,8 +7,9 @@ ioctl ABI; it does not inspect or filter IPMI command semantics.
 ## Status
 
 The protocol codec, OpenIPMI backend, single-connection relay, tests, and
-systemd packaging are implemented. Validation with a real QEMU KCS device and
-physical BMC is still required before the first production release.
+systemd packaging are implemented. End-to-end validation has been completed
+with a real QEMU KCS device and physical BMC: guest `ipmitool mc info` and
+`ipmitool lan print` both succeeded and matched the host BMC data.
 
 ## Data path
 

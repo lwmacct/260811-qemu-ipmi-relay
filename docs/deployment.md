@@ -34,6 +34,11 @@ mode `0600`. Its primary group is `incus`, and the relay creates its socket as
 mode `0660`, allowing the Incus QEMU process to connect. Adjust the service
 group if QEMU runs under a different account.
 
+Keep the socket outside `/run/incus/<instance>/`. Incus recreates that
+instance runtime directory during VM startup and may remove a relay socket
+placed there. The service's `/run/qemu-ipmi-relay/` runtime directory is
+independent of the instance lifecycle.
+
 ## QEMU devices
 
 The equivalent QEMU command-line fragment is:
@@ -84,7 +89,7 @@ modprobe ipmi_si
 modprobe ipmi_devintf
 ls -l /dev/ipmi0
 ipmitool mc info
-ipmitool lan print 1
+ipmitool lan print
 ```
 
 The relay does not filter commands. Every command issued by the guest is sent
