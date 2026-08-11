@@ -50,24 +50,8 @@ The equivalent QEMU command-line fragment is:
 ```
 
 For Incus, [`config/raw.qemu.conf`](../config/raw.qemu.conf) contains the
-following value for the VM's `raw.qemu.conf` setting:
-
-```ini
-[chardev "ipmi-relay"]
-backend = "socket"
-path = "/run/qemu-ipmi-relay/example-vm.sock"
-reconnect-ms = "1000"
-
-[device "host-bmc"]
-driver = "ipmi-bmc-extern"
-chardev = "ipmi-relay"
-
-[device "host-kcs"]
-driver = "isa-ipmi-kcs"
-bmc = "host-bmc"
-```
-
-Apply that file while the VM is stopped:
+complete value for the VM's `raw.qemu.conf` setting. Apply that file while the
+VM is stopped:
 
 ```sh
 incus stop example-vm
