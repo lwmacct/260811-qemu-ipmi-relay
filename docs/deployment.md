@@ -65,8 +65,12 @@ incus start example-vm
 
 Incus confinement must allow QEMU to connect to the selected Unix socket.
 Confirm this on the target host by checking the instance log and the Incus
-daemon log after the first start. Do not weaken confinement globally.
-The `reconnect-ms` setting lets QEMU reconnect after the relay service restarts.
+daemon log after the first start. Do not weaken confinement globally. The
+`reconnect-ms` setting retries temporary connection failures, but it does not
+make an established VM connection restart-safe on every QEMU version. On the
+validated Incus/QEMU target, restarting the relay caused connected QEMU
+processes to exit. Stop all attached VMs before upgrading or restarting the
+relay service.
 All connected VMs operate on the same physical BMC. All requests are
 serialized; configuration, reset, and power commands issued by any VM affect
 the same hardware.
@@ -78,6 +82,7 @@ Load the normal Linux IPMI drivers and verify the virtual device:
 ```sh
 modprobe ipmi_si
 modprobe ipmi_devintf
+until test -c /dev/ipmi0; do sleep 1; done
 ls -l /dev/ipmi0
 ipmitool mc info
 ipmitool lan print
