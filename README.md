@@ -10,7 +10,8 @@ The protocol codec, OpenIPMI backend, multi-client relay, tests, and systemd
 socket-activation packaging are implemented. End-to-end validation has been
 completed with two concurrent QEMU KCS VMs and a physical BMC: guest
 `ipmitool mc info` and `ipmitool lan print` succeeded from both VMs and matched
-the host BMC data.
+the host BMC data. Delayed OpenIPMI device readiness, Incus autostart, and a
+full host reboot have also been validated.
 
 ## Data path
 
