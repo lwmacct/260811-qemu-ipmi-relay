@@ -56,7 +56,7 @@ struct IpmiRecv {
 }
 
 const fn ioc(dir: u32, nr: u32, size: usize) -> libc::c_ulong {
-    (dir << 30 | (size as u32) << 16 | (b'i' as u32) << 8 | nr) as libc::c_ulong
+    ((dir << 30) | ((size as u32) << 16) | ((b'i' as u32) << 8) | nr) as libc::c_ulong
 }
 const IPMICTL_SEND_COMMAND: libc::c_ulong = ioc(2, 13, std::mem::size_of::<IpmiReq>());
 const IPMICTL_RECEIVE_MSG_TRUNC: libc::c_ulong = ioc(3, 11, std::mem::size_of::<IpmiRecv>());
@@ -169,7 +169,7 @@ impl Backend for OpenIpmi {
             response_data.truncate(len.min(response_data.len()));
             return Ok(IpmiMessage {
                 sequence: request.sequence,
-                netfn_lun: response.msg.netfn << 2 | (response_addr.data[0] & 3),
+                netfn_lun: (response.msg.netfn << 2) | (response_addr.data[0] & 3),
                 command: response.msg.cmd,
                 data: response_data,
             });
