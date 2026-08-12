@@ -9,24 +9,24 @@ interface. A single OpenIPMI worker serializes transactions to `/dev/ipmi0`.
 Pull the published AMD64 artifact and verify it:
 
 ```sh
-mkdir qemu-ipmi-relay-release
+install -d /opt/qemu-ipmi-relay
 oras pull \
-  --output qemu-ipmi-relay-release \
-  ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-amd64-latest
-(cd qemu-ipmi-relay-release && sha256sum --check SHA256SUMS)
-tar -xzf qemu-ipmi-relay-release/qemu-ipmi-relay-linux-amd64.tar.gz
+  --output /opt/qemu-ipmi-relay \
+  ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-linux-amd64-latest
+(cd /opt/qemu-ipmi-relay && sha256sum --check SHA256SUMS)
+tar -xzf /opt/qemu-ipmi-relay/release.tar.gz -C /opt/qemu-ipmi-relay
 ```
 
 Install the binary, systemd units, and global configuration from the extracted
 directory:
 
 ```sh
-install -Dm0755 bin/qemu-ipmi-relay /usr/local/sbin/qemu-ipmi-relay
-install -Dm0644 systemd/qemu-ipmi-relay.service \
+install -Dm0755 /opt/qemu-ipmi-relay/bin/qemu-ipmi-relay /usr/local/sbin/qemu-ipmi-relay
+install -Dm0644 /opt/qemu-ipmi-relay/systemd/qemu-ipmi-relay.service \
   /etc/systemd/system/qemu-ipmi-relay.service
-install -Dm0644 systemd/qemu-ipmi-relay.socket \
+install -Dm0644 /opt/qemu-ipmi-relay/systemd/qemu-ipmi-relay.socket \
   /etc/systemd/system/qemu-ipmi-relay.socket
-install -Dm0640 config/example.toml \
+install -Dm0640 /opt/qemu-ipmi-relay/config/example.toml \
   /etc/qemu-ipmi-relay/config.toml
 systemctl daemon-reload
 systemctl enable --now qemu-ipmi-relay.socket

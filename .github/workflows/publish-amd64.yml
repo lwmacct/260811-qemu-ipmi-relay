@@ -81,7 +81,7 @@ jobs:
 
             local _output_dir="${RUNNER_TEMP}/release"
             local _stage_dir="${RUNNER_TEMP}/stage"
-            local _archive_name=qemu-ipmi-relay-linux-amd64.tar.gz
+            local _archive_name=release.tar.gz
             local _source_date_epoch
 
             _source_date_epoch=$(git show -s --format=%ct HEAD)
@@ -145,8 +145,8 @@ jobs:
             set -euo pipefail
 
             local _short_sha=${GITHUB_SHA:0:12}
-            local _revision_tag=artifact-amd64-sha-${_short_sha}
-            local _latest_tag=artifact-amd64-latest
+            local _revision_tag=artifact-linux-amd64-sha-${_short_sha}
+            local _latest_tag=artifact-linux-amd64-latest
             local _revision_ref=${OCI_REPOSITORY}:${_revision_tag}
             local _revision_descriptor
             local _revision_digest
