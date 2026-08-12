@@ -53,8 +53,8 @@ Successful builds on `main` publish a Linux AMD64 release to GHCR as a generic
 OCI artifact:
 
 ```text
-ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-linux-amd64-latest
-ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-linux-amd64-sha-<commit-id-12>
+ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-amd64-latest
+ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-amd64-sha-<commit-id-12>
 ```
 
 Pull and verify it with ORAS:
@@ -63,7 +63,7 @@ Pull and verify it with ORAS:
 install -d /opt/qemu-ipmi-relay
 oras pull \
   --output /opt/qemu-ipmi-relay \
-  ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-linux-amd64-latest
+  ghcr.io/lwmacct/260811-qemu-ipmi-relay:artifact-amd64-latest
 (cd /opt/qemu-ipmi-relay && sha256sum --check SHA256SUMS)
 tar -xzf /opt/qemu-ipmi-relay/release.tar.gz -C /opt/qemu-ipmi-relay
 ```

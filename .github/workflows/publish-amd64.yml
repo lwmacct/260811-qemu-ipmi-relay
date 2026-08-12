@@ -145,8 +145,8 @@ jobs:
             set -euo pipefail
 
             local _short_sha=${GITHUB_SHA:0:12}
-            local _revision_tag=artifact-linux-amd64-sha-${_short_sha}
-            local _latest_tag=artifact-linux-amd64-latest
+            local _revision_tag=artifact-amd64-sha-${_short_sha}
+            local _latest_tag=artifact-amd64-latest
             local _revision_ref=${OCI_REPOSITORY}:${_revision_tag}
             local _revision_descriptor
             local _revision_digest
